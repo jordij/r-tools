@@ -5,12 +5,14 @@ library(ggmap)
 library(ggplot2)
 library(lubridate)
 library(maps)
+library(RColorBrewer)
 library(rgdal)
 library(scales)
 library(sp)
 library(tidyr)
 library(usmap)
 library(tmap)
+
 
 # Using Gill Sans Nova for plots and maps
 # If you need to load your fonts in Windows, uncomment next line
@@ -68,6 +70,15 @@ samdi_df$size <- with(samdi_df, ave(quantity, FUN=GetSizeFromQuant))
 # exclude rows from outside continental North America bounding box -136.4,16.8,-59.1,49.6
 bbox <- c(-136.4, -59.1,  16.8, 49.61)
 us_samdi_df <- samdi_df[(samdi_df$longitude >= bbox[1]  & samdi_df$longitude <= bbox[2] & samdi_df$latitude >= bbox[3] & samdi_df$latitude <= bbox[4] ),]
+us_samdi_df_plastic <- subset(us_samdi_df, description=="PLASTIC")
+# Reduce plastic levels
+levels(us_samdi_df_plastic$itemname)[levels(us_samdi_df_plastic$itemname) %in% c("Cigarette lighters/tobacco packaging", "Cigarette or tobacco packaging", "Cigarettes")] <- "Cigarettes"
+levels(us_samdi_df_plastic$itemname)[levels(us_samdi_df_plastic$itemname) %in% c("Aerosol cans", "Aluminum or tin cans")] <- "Cans"
+levels(us_samdi_df_plastic$itemname)[levels(us_samdi_df_plastic$itemname) %in%  c("Buoys and floats", "Crab/Lobster/Fish trap parts", "Fishing nets", "Fishing lures and lines", "Rope or Net Pieces (non-nylon)")] <- "Fishing gear"
+levels(us_samdi_df_plastic$itemname)[levels(us_samdi_df_plastic$itemname) == "Plastic Bags"] <- "Bags"
+levels(us_samdi_df_plastic$itemname)[levels(us_samdi_df_plastic$itemname) == "Plastic or Foam Fragments"] <- "Fragments"
+levels(us_samdi_df_plastic$itemname)[levels(us_samdi_df_plastic$itemname) %in% c("Plastic Bottle", "Plastic Bottle or Container Caps", "Straws", "Plastic Food Wrappers", "Foam or Plastic Cups", "Plastic Utensils", "Six-pack rings")] <- "Food&Drink"
+levels(us_samdi_df_plastic$itemname)[levels(us_samdi_df_plastic$itemname) %in% c("Styrofoam packaging", "Balloons and/or string", "Personal care products", "Other Plastic Jugs or Containers", "Fireworks", "Toys (plastic)", "Non-food related plastic packaging", "Chemicals and chemical containers", "Rubber Gloves")] <- "Other"
 
 
 #############
@@ -77,18 +88,17 @@ us_samdi_df <- samdi_df[(samdi_df$longitude >= bbox[1]  & samdi_df$longitude <= 
 years <- levels(factor(samdi_df$year))
 types <- levels(factor(samdi_df$description))
 years_num <- as.numeric(years)
-type_colors <- hue_pal()(8)
 map_labels <- c("< 5","< 10","< 20","< 30","< 40", "< 50", "< 100", "< 1,000", "> 1,000")
 quant_map_labels <- c("< 100","< 200","< 500","< 1000","< 5000", "< 20000", "< 50000", "> 100,000")
 
-desc_palette = c("#d71bf9", "#1bf9db", "#1bf922", "#f9f51b", "#f9bd1b", "#1a5422", "#f91b1b", "#6d4718")
+desc_palette = c( "#F8766D", "#CD9600", "#7CAE00", "#00BE67", "#00BFC4", "#FFFF00", "#FF61CC", "#C77CFF")
 
 PrintBarPlots <- function() {
     # count observations plot
     obs_plot <- ggplot(data=us_samdi_df, aes(x=reorder(description,description, function(x) - length(x)), fill=description)) +
         geom_bar(stat="count") +
         xlab("") + ylab("") +
-        scale_color_manual(values=desc_palette) + 
+        scale_fill_manual(values = desc_palette) +
         scale_y_continuous(labels = comma) + 
         theme(legend.position="none",
             axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
@@ -99,13 +109,30 @@ PrintBarPlots <- function() {
             axis.line = element_blank(),
             axis.ticks = element_blank(),
             rect = element_blank())
+    
+    obs_plastic_plot <- ggplot(data=us_samdi_df_plastic, aes(x=reorder(itemname,itemname, function(x) - length(x)), fill=itemname)) +
+      geom_bar(stat="count") +
+      xlab("") + ylab("") +
+      scale_fill_manual(values = desc_palette) +
+      scale_y_continuous(labels = comma) + 
+      theme(legend.position="none",
+            axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
+            axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            text=element_text(size=20,  family="Gill Sans Nova", colour="white"),
+            axis.line = element_blank(),
+            axis.ticks = element_blank(),
+            rect = element_blank())
+    
     ExportPlot(obs_plot, "obs_by_type", width=11, height = 6)
+    ExportPlot(obs_plastic_plot, "plastic_obs_by_type", width=11, height = 6)
 
     # quantity by type plot
     q_plot <- ggplot(data=us_samdi_df, aes(x=reorder(description,description, function(x) - length(x)), fill=description)) +
         geom_col(aes(y = quantity)) +
         xlab("") + ylab("") + 
-        scale_color_manual(values=desc_palette) + 
+        scale_fill_manual(values = desc_palette) +
         scale_y_continuous(labels = comma) +
         theme(legend.position="none",
           axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
@@ -116,15 +143,30 @@ PrintBarPlots <- function() {
           axis.line = element_blank(),
           axis.ticks = element_blank(),
           rect = element_blank())
+    plastic_q_plot <- ggplot(data=us_samdi_df_plastic, aes(x=reorder(itemname,itemname, function(x) - length(x)), fill=itemname)) +
+      geom_col(aes(y = quantity)) +
+      xlab("") + ylab("") + 
+      scale_fill_manual(values = desc_palette) +
+      scale_y_continuous(labels = comma) +
+      theme(legend.position="none",
+            axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
+            axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            text=element_text(size=20,  family="Gill Sans Nova", colour="white"),
+            axis.line = element_blank(),
+            axis.ticks = element_blank(),
+            rect = element_blank())
     ExportPlot(q_plot, "obs_by_quant", width=11, height = 6)
+    ExportPlot(plastic_q_plot, "plastic_obs_by_quant", width=11, height = 6)
 
     # count observations, per year plot
     obs_plot_yearly <- ggplot(data=us_samdi_df, aes(x=year, fill=description)) +
         xlab("") + ylab("") +
         geom_bar(stat="count") +
         scale_y_continuous(labels = comma) +
-        labs(fill="DEBRIS TYPE") +
-        scale_color_manual(values=desc_palette) + 
+        labs(fill="") +
+        scale_fill_manual(values = desc_palette) +
         scale_x_continuous("", labels=years, breaks=years_num) +
         theme(axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
             axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
@@ -141,8 +183,8 @@ PrintBarPlots <- function() {
         xlab("") + ylab("") +
         geom_bar(stat="identity") +
         scale_y_continuous(labels = comma) +
-        labs(fill="DEBRIS TYPE") +
-        scale_color_manual(values=desc_palette) + 
+        labs(fill="") +
+        scale_fill_manual(values = desc_palette) +
         scale_x_continuous("", labels=years, breaks=years_num) +
         theme(axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
             axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
@@ -159,7 +201,7 @@ PrintBarPlots <- function() {
         xlab("") + ylab("") +
         geom_bar(position="fill") +
         labs(fill="") +
-        scale_color_manual(values=desc_palette) + 
+        scale_fill_manual(values = desc_palette) +
         scale_x_continuous("", labels=years, breaks=years_num) +
         scale_y_continuous(labels = scales::percent) +
         theme(axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
@@ -171,7 +213,26 @@ PrintBarPlots <- function() {
             axis.ticks = element_blank(),
             rect = element_blank())
     ExportPlot(obs_plot_yearly_percent, "obs_by_quan_y_percent", width=11, height = 6)
-
+  
+    # count observations, per year plot but in percentage
+    plastic_obs_plot_yearly_percent <- ggplot(data=us_samdi_df_plastic, aes(x=year, fill=itemname)) +
+      xlab("") + ylab("") +
+      geom_bar(position="fill") +
+      labs(fill="") +
+      scale_fill_manual(values = desc_palette) +
+      scale_x_continuous("", labels=years, breaks=years_num) +
+      scale_y_continuous(labels = scales::percent) +
+      theme(axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
+            axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            text=element_text(size=20,  family="Gill Sans Nova", colour="white"),
+            axis.line = element_blank(),
+            axis.ticks = element_blank(),
+            rect = element_blank())
+    ExportPlot(plastic_obs_plot_yearly_percent, "plastic_obs_plot_yearly_percent", width=11, height = 6)
+    
+    
     remove(obs_plot, q_plot, obs_plot_yearly, q_plot_yearly, obs_plot_yearly_percent)
 
     # time series by type
@@ -179,10 +240,11 @@ PrintBarPlots <- function() {
     for (type in types) {
         df_type <- subset(us_samdi_df, description == type)
         p <- ggplot(data = df_type, aes(x=as.Date(date), y=quantity)) +
-            geom_line(size = 1, colour = type_colors[i]) +
+            geom_line(size = 1, colour = desc_palette[i]) +
             scale_x_date(date_labels = "%Y") +
             xlab("") + ylab("") +
-            ggtitle(type) + 
+            #ggtitle(type) +
+            ggtitle("") +
             theme(legend.position="none",
                 plot.title = element_text(hjust = 0.5,colour = "white", size=22, family="Gill Sans Nova"),
                 axis.title= element_text(colour = "white", size=20, family="Gill Sans Nova"),
@@ -208,7 +270,7 @@ PrintBarPlots()
 
 PlotDebrisMap <- function(basemap, dataframe, legend_pos="right"){
     gg <- basemap +
-        geom_point(data = dataframe, aes(x = longitude, y = latitude, color = description, size=size), alpha=0.75) +
+        geom_point(data = dataframe, aes(x = longitude, y = latitude, color = description, size=size), alpha=0.9) +
         scale_color_manual(values=desc_palette) + 
         scale_size_area(max_size = 8, breaks=beautiful_sizes, labels=map_labels) +
         theme(panel.grid.major = element_blank(),
@@ -233,7 +295,7 @@ world <- world[world$region != "Antarctica",] # remove antarctica
 base_map <- geom_map(data=world, map=world, aes(x=long, y=lat, map_id=region), color=NA, fill="#7f7f7f", size=0.05, alpha=0.4)
 base_map <- ggplot() + base_map
 world_map <- PlotDebrisMap(base_map, samdi_df)
-ExportPlot(world_map, "world_dist", width = 11, height = 6, format="png", transparent=TRUE)
+ExportPlot(world_map, "world_dist", width = 11, height = 8, format="png", transparent=TRUE)
 remove(world_map)
 
 states <- map_data("state")
@@ -264,7 +326,7 @@ base_map <- ggplot(data = gl) +
     coord_fixed(1.3)
 gl_samdi_df <- samdi_df[(samdi_df$longitude >= min(base_map$data$long) & samdi_df$longitude <= max(base_map$data$long) & samdi_df$latitude >= min(base_map$data$lat) & samdi_df$latitude <= max(base_map$data$lat)),]
 gl_map <- PlotDebrisMap(base_map, gl_samdi_df, legend_pos = "bottom")
-ExportPlot(gl_map, "gl_dist", width = 8, height = 10, format="png", transparent=TRUE)
+ExportPlot(gl_map, "gl_dist", width = 10, height = 8, format="png", transparent=TRUE)
 remove(gl_map)
 
 # West coast states dist
@@ -340,7 +402,7 @@ gl_hm <- ggplot(data = gl) +
         axis.ticks = element_blank(),
         rect = element_blank())
 
-ExportPlot(gl_hm, "gl_hm", width = 10, height = 6, format="png", transparent=TRUE)
+ExportPlot(gl_hm, "gl_hm", width = 10, height = 6, format="png", transparent=FALSE)
 remove(gl_hm)
 
 # WC quantity heatmap
@@ -364,7 +426,7 @@ wc_hm <- ggplot(data = wc) +
         axis.ticks = element_blank(),
         rect = element_blank())
 
-ExportPlot(wc_hm, "wc_hm", width = 6, height = 10, format="png", transparent=TRUE)
+ExportPlot(wc_hm, "wc_hm", width = 6, height = 10, format="png", transparent=FALSE)
 remove(wc_hm)
 
 # EC quantity heatmap
@@ -388,85 +450,5 @@ ec_hm <- ggplot(data = ec) +
         axis.ticks = element_blank(),
         rect = element_blank())
 
-ExportPlot(ec_hm, "ec_hm", width = 10, height = 6, format="png", transparent=TRUE)
+ExportPlot(ec_hm, "ec_hm", width = 10, height = 6, format="png", transparent=FALSE)
 remove(ec_hm)
-
-
-
-#GOOGLE
-
-# # generate US map (bw)
-# us_map <- get_googlemap(center=c(-97,38), zoom = 4,  maptype = "roadmap", style = 'feature:administrative|element:all|visibility:off', color="bw")
-# # plot all US debris
-# map_total_debris <- ggmap(us_map, extent="device") + geom_point(data=us_samdi_df, aes(x=longitude, y=latitude), alpha=.5, colour = "red", size=1, na.rm = TRUE) +
-#     theme(axis.line = element_blank(),
-#         axis.text = element_blank(),
-#         axis.ticks = element_blank(),
-#         plot.margin = unit(c(0, 0, -1, -1), 'lines')) +
-#     xlab('') +
-#     ylab('')
-# ExportPlot(map_total_debris, "map_total_debris", transparent = TRUE, width = 8, height = 6)
-# remove(map_total_debris)
-
-# # plot observations by quantity per year
-# for (y in years){
-#     us_samdi_df_year <- subset(us_samdi_df, year == y)
-#     map_to_plot <- ggmap(us_map) + geom_point(data=us_samdi_df_year, aes(x=longitude, y=latitude, fill=grade), colour="grey", pch=21, size=3, na.rm = TRUE) +
-#         scale_fill_brewer(palette="YlOrRd", name=sprintf("Obs. by quantity %s", y), labels=map_labels, na.value="transparent") +
-#         xlab("") +
-#         ylab("") +
-#         theme(axis.line = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), rect = element_blank())
-#     ExportPlot(map_to_plot, sprintf("total_debris_us_%s", y), width = 8, height = 6)
-#     remove(map_to_plot)
-# }
-
-# PLASTIC ONLY
-##############################
-# 
-# us_samdi_df_plastic <- subset(us_samdi_df, description=="PLASTIC")
-# 
-
-
-
-
-#############################
-
-
-#  xlim(-10,+2.5) +
-#  coord_fixed()
-
-
-# # Count observations, per year plot
-
-# plastic_color_scale <- c("8" = "red", "4" = "blue", "6" = "darkgreen", "10" = "orange")
-
-#  Plastic Bottle or Container Caps
-#  Plastic Bottle
-#  Other Plastic Jugs or Containers    
-
-
-#  Plastic Food Wrappers               
-#  Six-pack rings
-
-#  Cigarette or tobacco packaging
-#  Cigarettes  
-#  Cigarette lighters/tobacco packaging
- 
-#  Straws                              
-
-#  Plastic or Foam Fragments           
-#  Foam or Plastic Cups
-
-#  Plastic Utensils                    
- 
-#  Plastic Bags                     
- 
-#  Toys (plastic)                      
-
-#  Styrofoam packaging                 
-#  Balloons and/or string              
-#  Personal care products                      
-#  Fireworks                           
-#  Chemicals and chemical containers   
-#  Rubber Gloves                       
-#  Non-food related plastic packaging
