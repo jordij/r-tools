@@ -32,7 +32,9 @@ ExportPlot <- function(gplot, output="./output/", filename="untitled", width=4, 
     }
     print(gplot)
     dev.off()
+    remove(gplot)
 }
+
 
 GetSizeFromQuant <- function(quant) {
     case_when(
@@ -171,7 +173,7 @@ PrintBarPlots("YEARLY QUANTITY BY TYPE", "obs_by_quant_yearly", 11, 6, us_samdi_
 PrintBarPlots("YEARLY OBSERVATIONS BY TYPE", "obs_by_type_yearly_percent", 11, 6, us_samdi_df, "years", "fill", desc_palette, pfamily="Gill Sans Nova", pscalex="years", pscaley="percent")
 PrintBarPlots("PLASTIC YEARLY OBSERVATIONS BY TYPE", "plastic_obs_by_quant_yearly_percent", 11, 6, us_samdi_df_plastic, "percentyears", "fill", desc_palette, pfamily="Gill Sans Nova", pscalex="years", pscaley="percent", plegend="PLASTIC TYPES")
     
-# time series by type
+# Yearly series by type
 i <- 1
 for (type in types) {
     df_type <- subset(us_samdi_df, description == type)
@@ -184,23 +186,26 @@ for (type in types) {
 # Print Maps
 #############
 
-PlotDebrisMap <- function(basemap, dataframe, legend_pos="right"){
+PlotDebrisMap <- function(basemap, dataframe, title="", legend_pos="right"){
     gg <- basemap +
-        geom_point(data = dataframe, aes(x = longitude, y = latitude, color = description, size=size), alpha=0.9) +
+        geom_point(data=dataframe, aes(x=longitude, y=latitude, color=description, size=size), alpha=0.6) +
         scale_color_manual(values=desc_palette) + 
-        scale_size_area(max_size = 8, breaks=beautiful_sizes, labels=map_labels) +
-        theme(panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
+        scale_size_area(max_size=8, breaks=beautiful_sizes, labels=map_labels) +
+        theme(plot.title=element_text(hjust = 0.5),
+            panel.grid.major=element_blank(),
+            panel.grid.minor=element_blank(),
             text=element_text(size=22,  family="Gill Sans Nova", colour="white"),
             legend.position=legend_pos,
-            axis.line = element_blank(),
-            axis.text = element_blank(),
-            axis.ticks = element_blank(),
-            rect = element_blank()) +
+            axis.line=element_blank(),
+            axis.text=element_blank(),
+            axis.ticks=element_blank(),
+            rect=element_blank()) +
         xlab('') +
         ylab('') +
+        ggtitle(title) +
         labs(colour="", size="") +
-        guides(fill=guide_legend(ncol=1,bycol=TRUE), size=guide_legend(override.aes=list(colour="white")),
+        guides(fill=guide_legend(ncol=1, bycol=TRUE), 
+            size=guide_legend(override.aes=list(colour="white")),
             color=guide_legend(override.aes=list(size=5)))
     return(gg)
 }
@@ -208,14 +213,13 @@ PlotDebrisMap <- function(basemap, dataframe, legend_pos="right"){
 # world map, full data
 world <- map_data("world")
 world <- world[world$region != "Antarctica",] # remove antarctica
-base_map <- geom_map(data=world, map=world, aes(x=long, y=lat, map_id=region), color=NA, fill="#7f7f7f", size=0.05, alpha=0.4)
+base_map <- geom_map(data=world, map=world, aes(x=long, y=lat, map_id=region), color=NA, fill="#ffffff", size=0.05, alpha=0.5)
 base_map <- ggplot() + base_map
-world_map <- PlotDebrisMap(base_map, samdi_df)
-ExportPlot(world_map, "world_dist", width = 11, height = 8, format="png", transparent=TRUE)
-remove(world_map)
+world_map <- PlotDebrisMap(base_map, samdi_df, title="GLOBAL OBSERVATIONS BY TYPE AND QUANTITY")
+ExportPlot(world_map, filename="map_world_dist", width=11, height=6, bg="#3d85c6", format="png")
 
+# US east, west and great lakes counties
 states <- map_data("state")
-
 wc_states = c("california", "oregon", "washington", "ne")
 ec_states = c("louisiana", "mississippi", "alabama", "tennessee", "indiana",
                 "kentucky", "ohio", "west virginia", "pennsylvania", 
@@ -235,35 +239,19 @@ merged_counties$state_fip <- sapply(merged_counties$region, fips)
 # wc_counties <- subset(counties, region %in% wc_states)
 # gl_counties <- subset(counties, region %in% gl_states)
 
-# Great lakes states dist
-gl <- subset(states, region %in% gl_states)
-base_map <- ggplot(data = gl) + 
-    geom_polygon(aes(x = long, y = lat, group = group), fill="#7f7f7f", size=0.05, alpha=0.4, color="white") + 
-    coord_fixed(1.3)
-gl_samdi_df <- samdi_df[(samdi_df$longitude >= min(base_map$data$long) & samdi_df$longitude <= max(base_map$data$long) & samdi_df$latitude >= min(base_map$data$lat) & samdi_df$latitude <= max(base_map$data$lat)),]
-gl_map <- PlotDebrisMap(base_map, gl_samdi_df, legend_pos = "bottom")
-ExportPlot(gl_map, "gl_dist", width = 10, height = 8, format="png", transparent=TRUE)
-remove(gl_map)
+PrintCountiesOrStatesMap <- function (us_states, states, name, width, height, bg, title="") {
+    subset_counties <- subset(us_states, region %in% states)
+    gg <- ggplot(data=subset_counties) + 
+        geom_polygon(aes(x = long, y = lat, group = group), fill="#7f7f7f", size=0.05, alpha=0.4, color="white") + 
+        coord_fixed(1.3)
+    subset_samdi_df <- samdi_df[(samdi_df$longitude >= min(gg$data$long) & samdi_df$longitude <= max(gg$data$long) & samdi_df$latitude >= min(gg$data$lat) & samdi_df$latitude <= max(gg$data$lat)),]
+    gg_map <- PlotDebrisMap(gg, subset_samdi_df, title=title, legend_pos = "bottom")
+    ExportPlot(gg_map, filename=name, width=width, height=height, format="png", bg=bg)
+}
 
-# West coast states dist
-wc <- subset(states, region %in% wc_states)
-base_map <- ggplot(data = wc) + 
-    geom_polygon(aes(x = long, y = lat, group = group), fill="#7f7f7f", size=0.05, alpha=0.4, color="white") + 
-    coord_fixed(1.3)
-wc_samdi_df <- samdi_df[(samdi_df$longitude >= min(base_map$data$long) & samdi_df$longitude <= max(base_map$data$long) & samdi_df$latitude >= min(base_map$data$lat) & samdi_df$latitude <= max(base_map$data$lat)),]
-wc_map <- PlotDebrisMap(base_map, wc_samdi_df)
-ExportPlot(wc_map, "wc_dist", width = 10, height = 8, format="png", transparent=TRUE)
-remove(wc_map)
-
-# East coast states dist
-ec <- subset(states, region %in% ec_states)
-base_map <- ggplot(data = ec) + 
-    geom_polygon(aes(x = long, y = lat, group = group), fill="#7f7f7f", size=0.05, alpha=0.4, color="white") + 
-    coord_fixed(1.3)
-ec_samdi_df <- samdi_df[(samdi_df$longitude >= min(base_map$data$long) & samdi_df$longitude <= max(base_map$data$long) & samdi_df$latitude >= min(base_map$data$lat) & samdi_df$latitude <= max(base_map$data$lat)),]
-ec_map <- PlotDebrisMap(base_map, ec_samdi_df)
-ExportPlot(ec_map, "ec_dist", width = 8, height = 10, format="png", transparent=TRUE)
-remove(ec_map)
+PrintCountiesOrStatesMap(states, gl_states, "great_lakes_distribution", 10, 8, bg="#3d85c6", title="GREAT LAKES OBSERVATIONS BY TYPE AND QUANTITY")
+PrintCountiesOrStatesMap(states, wc_states, "west_coast_distribution", 10, 8, bg="#3d85c6", title="WEST COAST OBSERVATIONS BY TYPE AND QUANTITY")
+PrintCountiesOrStatesMap(states, ec_states, "east_coast_distribution", 8, 10, bg="#3d85c6", title="EAST COAST OBSERVATIONS BY TYPE AND QUANTITY")
 
 # Use tl_2009_us_county to match lat-long obs to county polygons.
 # Want the total obs count and total quantity observed per county.
