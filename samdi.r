@@ -21,15 +21,14 @@ library(tmap)
 ##################
 # Auxiliar methods
 ##################
-ExportPlot <- function(gplot, filename, width=4, height=3, transparent=FALSE, bg="#3d85c6", format="png") {
-    # Export plot in PNG
+ExportPlot <- function(gplot, output="./output/", filename="untitled", width=4, height=3, transparent=FALSE, bg="#ffffff", format="png") {
     # Notice that A4: width=11.69, height=8.27
     ifelse(transparent, background <- NA, background <- bg)
     if (format == "tiff") {
-      tiff(file = paste('./output/', filename, '_.png', sep=""), width = width, height = height, units="in", res=300, compression = 'lzw')
+      tiff(file = paste(output, filename, '_.tiff', sep=""), width = width, height = height, units="in", res=300, compression = 'lzw')
     }
     else{
-      png(file = paste('./output/', filename, '_.png', sep=""), bg=background, width = width * 100, height = height * 100)
+      png(file = paste(output, filename, '_.png', sep=""), bg=background, width = width * 100, height = height * 100)
     }
     print(gplot)
     dev.off()
@@ -49,6 +48,73 @@ GetSizeFromQuant <- function(quant) {
         quant == NA ~ 0
     )
 }
+
+
+PrintBarPlots <- function(ptitle, pname, pwidth, pheight, pdata, pfill, ptype, ppalette, 
+                ptitlesize=22, ptextsize=17, pfamily="serif", pxlab="", pylab="", pscalex="", 
+                pscaley="comma", pcolor="white", plegend="none", mcolor=NA) {
+    # type of main plot
+    if (pfill == "description") {
+        plot <- ggplot(data=pdata, aes(x=reorder(description, description, function(x) - length(x)), fill=description))
+    } else if (pfill == "itemname") {
+        plot <- ggplot(data=pdata, aes(x=reorder(itemname, itemname, function(x) - length(x)), fill=itemname))
+    } else if (pfill == "years") {
+        plot <- ggplot(data=pdata, aes(x=year, fill=description))
+    } else if (pfill == "quantyears") {
+        plot <- ggplot(data=pdata, aes(x=year, y=quantity, fill=description))
+    } else if (pfill == "percentyears") {
+        plot <- ggplot(data=pdata, aes(x=year, fill=itemname))
+    } else if (pfill == "date") {
+        plot <- ggplot(pdata, aes(x=as.Date(date), y=quantity))
+    }
+    # by number of obs (count) or quantity
+    if (ptype == "col") {
+        plot <- plot + geom_col(aes(y=quantity))
+    } else if (ptype == "count") {
+        plot <- plot + geom_bar(stat="count")
+    } else if (ptype == "identity") {
+        plot <- plot + geom_bar(stat="identity") 
+    } else if (ptype == "fill") {
+        plot <- plot + geom_bar(position="fill")
+    } else if (ptype == "line") {
+        plot <- plot + geom_line(size = 1, colour=mcolor)
+    }
+
+    # y scale format
+    if (pscaley == "comma") {
+        plot <- plot + scale_y_continuous(labels=comma)
+    } else if (pscaley == "percent") {
+        plot <- plot + scale_y_continuous(labels=scales::percent)
+    }
+    # x scale format
+    if (pscalex == "years") {
+        plot <- plot + scale_x_continuous("", labels=years, breaks=years_num)
+    } else if (pscalex == "date") {
+        plot <- plot + scale_x_date(date_labels = "%Y") 
+    }
+    # rest of stuff, fonts, background etc
+    plot <- plot +
+        ggtitle(ptitle) +
+        xlab(pxlab) + 
+        ylab(pylab) +
+        scale_fill_manual(values = ppalette) + 
+        theme(legend.position=ifelse(plegend == "none", "none", "right"),
+            plot.title=element_text(hjust = 0.5),
+            axis.title=element_text(colour=pcolor, size=ptitlesize, family=pfamily),
+            axis.text=element_text(colour=pcolor, size=ptextsize, family=pfamily),
+            panel.grid.major=element_blank(),
+            panel.grid.minor=element_blank(),
+            text=element_text(size=ptextsize, family="Gill Sans Nova", colour=pcolor),
+            axis.line=element_blank(),
+            axis.ticks=element_blank(),
+            rect=element_blank())
+    if (plegend != "none") {
+        plot <- plot + labs(fill=plegend)
+    } 
+    # export to png
+    ExportPlot(plot, filename=pname, width=pwidth, height=pheight, bg="#3d85c6", format="png")
+}
+
 
 
 #######################
@@ -93,176 +159,26 @@ quant_map_labels <- c("< 100","< 200","< 500","< 1000","< 5000", "< 20000", "< 5
 
 desc_palette = c( "#F8766D", "#CD9600", "#7CAE00", "#00BE67", "#00BFC4", "#FFFF00", "#FF61CC", "#C77CFF")
 
-PrintBarPlots <- function() {
-    # count observations plot
-    obs_plot <- ggplot(data=us_samdi_df, aes(x=reorder(description,description, function(x) - length(x)), fill=description)) +
-        geom_bar(stat="count") +
-        xlab("") + ylab("") +
-        scale_fill_manual(values = desc_palette) +
-        scale_y_continuous(labels = comma) + 
-        theme(legend.position="none",
-            axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
-            axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            text=element_text(size=20,  family="Gill Sans Nova", colour="white"),
-            axis.line = element_blank(),
-            axis.ticks = element_blank(),
-            rect = element_blank())
-    
-    obs_plastic_plot <- ggplot(data=us_samdi_df_plastic, aes(x=reorder(itemname,itemname, function(x) - length(x)), fill=itemname)) +
-      geom_bar(stat="count") +
-      xlab("") + ylab("") +
-      scale_fill_manual(values = desc_palette) +
-      scale_y_continuous(labels = comma) + 
-      theme(legend.position="none",
-            axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
-            axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            text=element_text(size=20,  family="Gill Sans Nova", colour="white"),
-            axis.line = element_blank(),
-            axis.ticks = element_blank(),
-            rect = element_blank())
-    
-    ExportPlot(obs_plot, "obs_by_type", width=11, height = 6)
-    ExportPlot(obs_plastic_plot, "plastic_obs_by_type", width=11, height = 6)
+PrintBarPlots("OBSERVATIONS BY TYPE", "obs_by_type", 11, 6, us_samdi_df, "description", "count", desc_palette, pfamily="Gill Sans Nova")
+PrintBarPlots("PLASTIC OBSERVATIONS BY TYPE", "plastic_obs_by_type", 11, 6, us_samdi_df_plastic, "itemname", "count", desc_palette, pfamily="Gill Sans Nova")
 
-    # quantity by type plot
-    q_plot <- ggplot(data=us_samdi_df, aes(x=reorder(description,description, function(x) - length(x)), fill=description)) +
-        geom_col(aes(y = quantity)) +
-        xlab("") + ylab("") + 
-        scale_fill_manual(values = desc_palette) +
-        scale_y_continuous(labels = comma) +
-        theme(legend.position="none",
-          axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
-          axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          text=element_text(size=20,  family="Gill Sans Nova", colour="white"),
-          axis.line = element_blank(),
-          axis.ticks = element_blank(),
-          rect = element_blank())
-    plastic_q_plot <- ggplot(data=us_samdi_df_plastic, aes(x=reorder(itemname,itemname, function(x) - length(x)), fill=itemname)) +
-      geom_col(aes(y = quantity)) +
-      xlab("") + ylab("") + 
-      scale_fill_manual(values = desc_palette) +
-      scale_y_continuous(labels = comma) +
-      theme(legend.position="none",
-            axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
-            axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            text=element_text(size=20,  family="Gill Sans Nova", colour="white"),
-            axis.line = element_blank(),
-            axis.ticks = element_blank(),
-            rect = element_blank())
-    ExportPlot(q_plot, "obs_by_quant", width=11, height = 6)
-    ExportPlot(plastic_q_plot, "plastic_obs_by_quant", width=11, height = 6)
+PrintBarPlots("QUANTITY BY TYPE", "obs_by_quant", 11, 6, us_samdi_df, "description", "col", desc_palette, pfamily="Gill Sans Nova")
+PrintBarPlots("PLASTIC OBSERVATIONS BY QUANTITY", "plastic_obs_by_quant", 11, 6, us_samdi_df_plastic, "itemname", "col", desc_palette, pfamily="Gill Sans Nova")
 
-    # count observations, per year plot
-    obs_plot_yearly <- ggplot(data=us_samdi_df, aes(x=year, fill=description)) +
-        xlab("") + ylab("") +
-        geom_bar(stat="count") +
-        scale_y_continuous(labels = comma) +
-        labs(fill="") +
-        scale_fill_manual(values = desc_palette) +
-        scale_x_continuous("", labels=years, breaks=years_num) +
-        theme(axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
-            axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            text=element_text(size=20,  family="Gill Sans Nova", colour="white"),
-            axis.line = element_blank(),
-            axis.ticks = element_blank(),
-            rect = element_blank())
-    ExportPlot(obs_plot_yearly, "obs_by_type_y", width=11, height = 6)
-        
-    # quantity by type, per year plot
-    q_plot_yearly <- ggplot(data=us_samdi_df, aes(x=year, y=quantity, fill=description)) +
-        xlab("") + ylab("") +
-        geom_bar(stat="identity") +
-        scale_y_continuous(labels = comma) +
-        labs(fill="") +
-        scale_fill_manual(values = desc_palette) +
-        scale_x_continuous("", labels=years, breaks=years_num) +
-        theme(axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
-            axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            text=element_text(size=20,  family="Gill Sans Nova", colour="white"),
-            axis.line = element_blank(),
-            axis.ticks = element_blank(),
-            rect = element_blank())
-    ExportPlot(q_plot_yearly, "obs_by_quant_y", width=11, height = 6)
-    
-    # count observations, per year plot but in percentage
-    obs_plot_yearly_percent <- ggplot(data=us_samdi_df, aes(x=year, fill=description)) +
-        xlab("") + ylab("") +
-        geom_bar(position="fill") +
-        labs(fill="") +
-        scale_fill_manual(values = desc_palette) +
-        scale_x_continuous("", labels=years, breaks=years_num) +
-        scale_y_continuous(labels = scales::percent) +
-        theme(axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
-            axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            text=element_text(size=20,  family="Gill Sans Nova", colour="white"),
-            axis.line = element_blank(),
-            axis.ticks = element_blank(),
-            rect = element_blank())
-    ExportPlot(obs_plot_yearly_percent, "obs_by_quan_y_percent", width=11, height = 6)
-  
-    # count observations, per year plot but in percentage
-    plastic_obs_plot_yearly_percent <- ggplot(data=us_samdi_df_plastic, aes(x=year, fill=itemname)) +
-      xlab("") + ylab("") +
-      geom_bar(position="fill") +
-      labs(fill="") +
-      scale_fill_manual(values = desc_palette) +
-      scale_x_continuous("", labels=years, breaks=years_num) +
-      scale_y_continuous(labels = scales::percent) +
-      theme(axis.title= element_text(colour = "white", size=22, family="Gill Sans Nova"),
-            axis.text = element_text(colour = "white", size=17, family="Gill Sans Nova"),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            text=element_text(size=20,  family="Gill Sans Nova", colour="white"),
-            axis.line = element_blank(),
-            axis.ticks = element_blank(),
-            rect = element_blank())
-    ExportPlot(plastic_obs_plot_yearly_percent, "plastic_obs_plot_yearly_percent", width=11, height = 6)
-    
-    
-    remove(obs_plot, q_plot, obs_plot_yearly, q_plot_yearly, obs_plot_yearly_percent)
+PrintBarPlots("YEARLY OBSERVATIONS BY TYPE", "obs_by_type_yearly", 11, 6, us_samdi_df, "years", "count", desc_palette, pfamily="Gill Sans Nova", pscalex="years")
+PrintBarPlots("YEARLY QUANTITY BY TYPE", "obs_by_quant_yearly", 11, 6, us_samdi_df, "quantyears", "identity", desc_palette, pfamily="Gill Sans Nova", pscalex="years")
 
-    # time series by type
-    i <- 1
-    for (type in types) {
-        df_type <- subset(us_samdi_df, description == type)
-        p <- ggplot(data = df_type, aes(x=as.Date(date), y=quantity)) +
-            geom_line(size = 1, colour = desc_palette[i]) +
-            scale_x_date(date_labels = "%Y") +
-            xlab("") + ylab("") +
-            #ggtitle(type) +
-            ggtitle("") +
-            theme(legend.position="none",
-                plot.title = element_text(hjust = 0.5,colour = "white", size=22, family="Gill Sans Nova"),
-                axis.title= element_text(colour = "white", size=20, family="Gill Sans Nova"),
-                axis.text = element_text(colour = "white", size=16, family="Gill Sans Nova"),
-                panel.grid.major = element_blank(),
-                panel.grid.minor = element_blank(),
-                text=element_text(size=20,  family="Gill Sans Nova", colour="white"),
-                axis.line = element_blank(),
-                axis.ticks = element_blank(),
-                rect = element_blank())
-        ExportPlot(p, sprintf("quant_time_series_%s", type) , width = 8, height = 6)
-        remove(p)
-        i <- i + 1
-    }
-
+PrintBarPlots("YEARLY OBSERVATIONS BY TYPE", "obs_by_type_yearly_percent", 11, 6, us_samdi_df, "years", "fill", desc_palette, pfamily="Gill Sans Nova", pscalex="years", pscaley="percent")
+PrintBarPlots("PLASTIC YEARLY OBSERVATIONS BY TYPE", "plastic_obs_by_quant_yearly_percent", 11, 6, us_samdi_df_plastic, "percentyears", "fill", desc_palette, pfamily="Gill Sans Nova", pscalex="years", pscaley="percent", plegend="PLASTIC TYPES")
+    
+# time series by type
+i <- 1
+for (type in types) {
+    df_type <- subset(us_samdi_df, description == type)
+    PrintBarPlots(type, sprintf("quant_time_series_%s", type), 8, 6, df_type, "date", "line", desc_palette, pfamily="Gill Sans Nova", pscalex="date", pscaley="", mcolor=desc_palette[i])
+    i <- i + 1
 }
 
-PrintBarPlots()
 
 #############
 # Print Maps
