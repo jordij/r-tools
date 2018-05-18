@@ -210,15 +210,27 @@ PlotDebrisMap <- function(basemap, dataframe, title="", legend_pos="right"){
     return(gg)
 }
 
-# world map, full data
+PrintCountiesOrStatesMap <- function (us_states, states, name, width, height, bg, title="", legendpos="bottom") {
+    subset_counties <- subset(us_states, region %in% states)
+    gg <- ggplot(data=subset_counties) + 
+        geom_polygon(aes(x = long, y = lat, group = group), fill="#7f7f7f", size=0.05, alpha=0.4, color="white") + 
+        coord_fixed(1.3)
+    subset_samdi_df <- samdi_df[(samdi_df$longitude >= min(gg$data$long) & samdi_df$longitude <= max(gg$data$long) & samdi_df$latitude >= min(gg$data$lat) & samdi_df$latitude <= max(gg$data$lat)),]
+    gg_map <- PlotDebrisMap(gg, subset_samdi_df, title=title, legend_pos=legendpos)
+    ExportPlot(gg_map, filename=name, width=width, height=height, format="png", bg=bg)
+}
+
+
+# world map, full dataset
 world <- map_data("world")
 world <- world[world$region != "Antarctica",] # remove antarctica
 base_map <- geom_map(data=world, map=world, aes(x=long, y=lat, map_id=region), color=NA, fill="#ffffff", size=0.05, alpha=0.5)
 base_map <- ggplot() + base_map
 world_map <- PlotDebrisMap(base_map, samdi_df, title="GLOBAL OBSERVATIONS BY TYPE AND QUANTITY")
+
 ExportPlot(world_map, filename="map_world_dist", width=11, height=6, bg="#3d85c6", format="png")
 
-# US east, west and great lakes counties
+# US east coast, west coast and great lakes
 states <- map_data("state")
 wc_states = c("california", "oregon", "washington", "ne")
 ec_states = c("louisiana", "mississippi", "alabama", "tennessee", "indiana",
@@ -227,31 +239,17 @@ ec_states = c("louisiana", "mississippi", "alabama", "tennessee", "indiana",
                 "new york", "new jersey", "delaware", "maryland", "virginia", "north carolina",
                 "south carolina", "georgia", "florida")
 gl_states = c("illinois", "indiana", "michigan", "minnesota", "new york", "ohio", "pennsylvania", "wisconsin")
-counties <- map_data("county")
+
+PrintCountiesOrStatesMap(states, gl_states, "great_lakes_distribution", 10, 8, bg="#3d85c6", title="GREAT LAKES OBSERVATIONS BY TYPE AND QUANTITY")
+PrintCountiesOrStatesMap(states, wc_states, "west_coast_distribution", 9, 8, bg="#3d85c6", title="WEST COAST OBSERVATIONS BY TYPE AND QUANTITY")
+PrintCountiesOrStatesMap(states, ec_states, "east_coast_distribution", 10, 8, bg="#3d85c6", title="EAST COAST OBSERVATIONS BY TYPE AND QUANTITY", legendpos="right")
 
 # Prepare counties with fips (needed for merges..)
+counties <- map_data("county")
 c_fips <- county.fips
 county_fips <- separate(data = c_fips, col = polyname, into = c("region", "subregion"), sep = "\\,")
 merged_counties <- left_join(counties, county_fips, by=c("region", "subregion") )
 merged_counties$state_fip <- sapply(merged_counties$region, fips)
-
-# ec_counties <- subset(counties, region %in% ec_states)
-# wc_counties <- subset(counties, region %in% wc_states)
-# gl_counties <- subset(counties, region %in% gl_states)
-
-PrintCountiesOrStatesMap <- function (us_states, states, name, width, height, bg, title="") {
-    subset_counties <- subset(us_states, region %in% states)
-    gg <- ggplot(data=subset_counties) + 
-        geom_polygon(aes(x = long, y = lat, group = group), fill="#7f7f7f", size=0.05, alpha=0.4, color="white") + 
-        coord_fixed(1.3)
-    subset_samdi_df <- samdi_df[(samdi_df$longitude >= min(gg$data$long) & samdi_df$longitude <= max(gg$data$long) & samdi_df$latitude >= min(gg$data$lat) & samdi_df$latitude <= max(gg$data$lat)),]
-    gg_map <- PlotDebrisMap(gg, subset_samdi_df, title=title, legend_pos = "bottom")
-    ExportPlot(gg_map, filename=name, width=width, height=height, format="png", bg=bg)
-}
-
-PrintCountiesOrStatesMap(states, gl_states, "great_lakes_distribution", 10, 8, bg="#3d85c6", title="GREAT LAKES OBSERVATIONS BY TYPE AND QUANTITY")
-PrintCountiesOrStatesMap(states, wc_states, "west_coast_distribution", 10, 8, bg="#3d85c6", title="WEST COAST OBSERVATIONS BY TYPE AND QUANTITY")
-PrintCountiesOrStatesMap(states, ec_states, "east_coast_distribution", 8, 10, bg="#3d85c6", title="EAST COAST OBSERVATIONS BY TYPE AND QUANTITY")
 
 # Use tl_2009_us_county to match lat-long obs to county polygons.
 # Want the total obs count and total quantity observed per county.
