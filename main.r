@@ -116,7 +116,7 @@ PrintBarPlots("Yearly Quantity by Type in the U.S.", "obs_by_quant_yearly", 11, 
 
 PrintBarPlots("Yearly Observations by Type in the U.S.", "obs_by_type_yearly_percent", 11, 6, us_samdi_df, 
     "years", "fill", desc_palette, pfamily="Gill Sans Nova", pscalex="years", pscaley="percent",
-    plegend="Types", pposlegend="right"))
+    plegend="Types", pposlegend="right")
 PrintBarPlots("Plastic Yearly Observations by Type in the U.S.", "plastic_obs_by_quant_yearly_percent", 11, 6,
     us_samdi_df_plastic, "percentyears", "fill", desc_palette, pfamily="Gill Sans Nova", 
     pscalex="years", pscaley="percent", plegend="Plastic Types", pposlegend="right")
