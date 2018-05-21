@@ -35,10 +35,16 @@ GetSizeFromQuant <- function(quant) {
 #############
 
 PrintLinePlot <- function(pdata, pxlab, pylab, pname, pwidth=10, pheight=6, ptitle="", 
-                    plcolor="#FF5733", pcolor="black", ptitlesize=22, ptextsize=17, pfamily="serif", 
-                    plegend="none", pbg="white", pformat="png") {
-    plot <- ggplot(pdata, aes(x=year, size=1)) + 
-        geom_line(stat="count", colour=plcolor) + 
+        plcolor="#FF5733", pcolor="#000000", ptitlesize=22, ptextsize=17, pfamily="serif", 
+        ptype="count", plegend="none", pbg="white", pformat="png") {
+    if (ptype == "count") {
+        plot <-  ggplot(pdata, aes(x=year, size=1)) + 
+            geom_line(stat="count", colour=plcolor)
+    } else if(ptype == "quantity") {
+        plot <-  ggplot(pdata, aes(x=year, y=quantity, size=1)) + 
+            stat_summary(fun.y=sum, na.rm=TRUE, color=plcolor, geom ='line')
+    }
+    plot <- plot +
         scale_x_continuous(breaks=c(2011:2017)) +
         ggtitle(ptitle)  +
         xlab(pxlab) + 
@@ -60,8 +66,8 @@ PrintLinePlot <- function(pdata, pxlab, pylab, pname, pwidth=10, pheight=6, ptit
 }
 
 PrintBarPlots <- function(ptitle, pname, pwidth, pheight, pdata, pfill, ptype, ppalette, 
-                            ptitlesize=22, ptextsize=17, pfamily="serif", pxlab="", pylab="", pscalex="", 
-                            pscaley="comma", pcolor="white", plegend="none", mcolor=NA) {
+        ptitlesize=22, ptextsize=17, pfamily="serif", pxlab="", pylab="", pscalex="", 
+        pscaley="comma", pcolor="#000000", plegend="none", pposlegend="none", mcolor=NA, pbg="#ffffff") {
     # type of main plot
     if (pfill == "description") {
         plot <- ggplot(data=pdata, aes(x=reorder(description, description, function(x) - length(x)), fill=description))
@@ -107,9 +113,11 @@ PrintBarPlots <- function(ptitle, pname, pwidth, pheight, pdata, pfill, ptype, p
         xlab(pxlab) + 
         ylab(pylab) +
         scale_fill_manual(values = ppalette) + 
-        theme(legend.position=ifelse(plegend == "none", "none", "right"),
+        theme(legend.position=ifelse(pposlegend == "none", "none", "right"),
+            legend.spacing = unit(1,"cm"),
             plot.title=element_text(hjust = 0.5),
-            axis.title=element_text(colour=pcolor, size=ptitlesize, family=pfamily),
+            axis.title.x=element_text(margin=margin(t=20, r=0, b=0, l=0), colour=pcolor, size=ptextsize, family=pfamily),
+            axis.title.y=element_text(margin=margin(t=0, r=10, b=0, l=0), colour=pcolor, size=ptextsize, family=pfamily),
             axis.text=element_text(colour=pcolor, size=ptextsize, family=pfamily),
             panel.grid.major=element_blank(),
             panel.grid.minor=element_blank(),
@@ -121,7 +129,7 @@ PrintBarPlots <- function(ptitle, pname, pwidth, pheight, pdata, pfill, ptype, p
         plot <- plot + labs(fill=plegend)
     } 
     # export to png
-    ExportPlot(plot, filename=pname, width=pwidth, height=pheight, bg="#3d85c6", format="png")
+    ExportPlot(plot, filename=pname, width=pwidth, height=pheight, bg=pbg, format="png")
 }
 
 
@@ -129,7 +137,7 @@ PrintBarPlots <- function(ptitle, pname, pwidth, pheight, pdata, pfill, ptype, p
 # Print Maps
 #############
 
-PlotDebrisMap <- function(basemap, dataframe, title="", legend_pos="right"){
+PlotDebrisMap <- function(basemap, dataframe, title="", legend_pos="right", pcolor="#000000"){
     gg <- basemap +
         geom_point(data=dataframe, aes(x=longitude, y=latitude, color=description, size=size), alpha=0.6) +
         scale_color_manual(values=desc_palette) + 
@@ -137,8 +145,9 @@ PlotDebrisMap <- function(basemap, dataframe, title="", legend_pos="right"){
         theme(plot.title=element_text(hjust = 0.5),
             panel.grid.major=element_blank(),
             panel.grid.minor=element_blank(),
-            text=element_text(size=22,  family="Gill Sans Nova", colour="white"),
+            text=element_text(size=22,  family="Gill Sans Nova", colour=pcolor),
             legend.position=legend_pos,
+            legend.spacing = unit(1,"cm"),
             axis.line=element_blank(),
             axis.text=element_blank(),
             axis.ticks=element_blank(),
@@ -148,12 +157,12 @@ PlotDebrisMap <- function(basemap, dataframe, title="", legend_pos="right"){
         ggtitle(title) +
         labs(colour="", size="") +
         guides(fill=guide_legend(ncol=1, bycol=TRUE), 
-            size=guide_legend(override.aes=list(colour="white")),
+            size=guide_legend(override.aes=list(colour=pcolor)),
             color=guide_legend(override.aes=list(size=5)))
     return(gg)
 }
 
-PrintCountiesOrStatesMap <- function (us_states, states, name, width, height, bg, title="", legendpos="bottom") {
+PrintCountiesOrStatesMap <- function (us_states, states, name, width, height, bg="#ffffff", title="", legendpos="bottom") {
     subset_counties <- subset(us_states, region %in% states)
     gg <- ggplot(data=subset_counties) + 
         geom_polygon(aes(x = long, y = lat, group = group), fill="#7f7f7f", size=0.05, alpha=0.4, color="white") + 
@@ -164,11 +173,11 @@ PrintCountiesOrStatesMap <- function (us_states, states, name, width, height, bg
 }
 
 PrintHeatMap <- function(states, sub_states, counties, pfilename, pwidth, pheight, ppalette, plabels, pfont="serif", fillcolor, 
-                            pcolor="white", pposlegend="right", pbg="#3d85c6", ptitle="") {
+                            pcolor="#000000", pposlegend="right", pbg="#ffffff", ptitle="") {
     subset_counties <- subset(states, region %in% sub_states)
     gg <- ggplot(data=subset_counties) + 
-        geom_polygon(aes(x=long, y=lat, group=group), fill=fillcolor, size=0.05, alpha=0.4, color=pcolor) +
-        geom_polygon(data=counties, aes(long, lat, group=group, fill=grade), alpha=0.7, color=pcolor) + 
+        geom_polygon(aes(x=long, y=lat, group=group), fill=fillcolor, size=0.05, alpha=0.7, color=pcolor) +
+        geom_polygon(data=counties, aes(long, lat, group=group, fill=grade), alpha=0.8, color=pcolor) + 
         scale_fill_brewer(palette=ppalette, labels=plabels, name="", drop=FALSE) +
         coord_fixed(1.4) +
         xlab("") +

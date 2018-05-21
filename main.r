@@ -44,18 +44,46 @@ levels(us_samdi_df_plastic$itemname)[levels(us_samdi_df_plastic$itemname) == "Pl
 levels(us_samdi_df_plastic$itemname)[levels(us_samdi_df_plastic$itemname) %in% c("Plastic Bottle", "Plastic Bottle or Container Caps", "Straws", "Plastic Food Wrappers", "Foam or Plastic Cups", "Plastic Utensils", "Six-pack rings")] <- "Food&Drink"
 levels(us_samdi_df_plastic$itemname)[levels(us_samdi_df_plastic$itemname) %in% c("Styrofoam packaging", "Balloons and/or string", "Personal care products", "Other Plastic Jugs or Containers", "Fireworks", "Toys (plastic)", "Non-food related plastic packaging", "Chemicals and chemical containers", "Rubber Gloves")] <- "Other"
 
+
+########################
+# Print some basic stats
+########################
+
+# global
+nrow(samdi_df)
+summarize(group_by(samdi_df, year), mm= mean(quantity), 
+    tot= sum(quantity), 
+    max = max(quantity, na.rm = TRUE))
+# us only
+nrow(us_samdi_df)
+summarize(group_by(us_samdi_df, year), mm= mean(quantity), 
+    tot= sum(quantity), 
+    max = max(quantity, na.rm = TRUE))
+# plastic us only
+nrow(us_samdi_df_plastic)
+summarize(group_by(us_samdi_df_plastic, year), mm= mean(quantity), 
+    tot= sum(quantity), 
+    max = max(quantity, na.rm = TRUE))
+
 ##################
 # Print line plots
 ##################
 
-# n observations worldwide, excluding 2018 as not completed year yet
-PrintLinePlot(samdi_df[!(samdi_df$year == 2018),], "Years", "Obs.", "world_observations", 
+# n observations, excluding 2018 as not completed year yet
+PrintLinePlot(samdi_df[!(samdi_df$year == 2018),], "Years", "Observations", "world_observations", 
     ptitle="World Observations", pfamily="Gill Sans Nova")
-PrintLinePlot(us_samdi_df[!(us_samdi_df$year == 2018),], "Years", "Obs.", "us_observations", 
+PrintLinePlot(us_samdi_df[!(us_samdi_df$year == 2018),], "Years", "Observations", "us_observations", 
     ptitle="Observations in the U.S.", pfamily="Gill Sans Nova")
-PrintLinePlot(us_samdi_df_plastic[!(us_samdi_df_plastic$year == 2018),], "Years", "Plastic Obs.", 
-    "us_plastic_observations", ptitle="Plastic Obs. in the U.S.", pfamily="Gill Sans Nova")
+PrintLinePlot(us_samdi_df_plastic[!(us_samdi_df_plastic$year == 2018),], "Years", "Plastic Observations", 
+    "us_plastic_observations", ptitle="Plastic Observations in the U.S.", plcolor="#FF61CC", pfamily="Gill Sans Nova")
 
+# quantity worldwide, excluding 2018 as not completed year yet
+PrintLinePlot(samdi_df[!(samdi_df$year == 2018),], "Years", "Quantity", "world_quantity", 
+    ptitle="World Quantity", pfamily="Gill Sans Nova", ptype="quantity")
+PrintLinePlot(us_samdi_df[!(us_samdi_df$year == 2018),], "Years", "Quantity", "us_quantitys]", 
+    ptitle="Quantity in the U.S.", pfamily="Gill Sans Nova", ptype="quantity")
+PrintLinePlot(us_samdi_df_plastic[!(us_samdi_df_plastic$year == 2018),], "Years", "Plastic Quantity", 
+    "us_plastic_quantity", ptitle="Plastic Quantity in the U.S.", plcolor="#FF61CC", pfamily="Gill Sans Nova", ptype="quantity")
 
 #################
 # Print Bar Plots
@@ -69,17 +97,29 @@ map_labels <- c("< 5","< 10","< 20","< 30","< 40", "< 50", "< 100", "< 1,000", "
 quant_map_labels <- c("< 100","< 200","< 500","< 1,000","< 5,000", "< 20,000", "< 50,000", "> 100,000")
 desc_palette = c( "#F8766D", "#CD9600", "#7CAE00", "#00BE67", "#00BFC4", "#FFFF00", "#FF61CC", "#C77CFF")
 
-PrintBarPlots("OBSERVATIONS BY TYPE", "obs_by_type", 11, 6, us_samdi_df, "description", "count", desc_palette, pfamily="Gill Sans Nova")
-PrintBarPlots("PLASTIC OBSERVATIONS BY TYPE", "plastic_obs_by_type", 11, 6, us_samdi_df_plastic, "itemname", "count", desc_palette, pfamily="Gill Sans Nova")
+PrintBarPlots("Observations by Type in the U.S.", "obs_by_type", 11, 6, us_samdi_df, "description", 
+    "count", desc_palette, pfamily="Gill Sans Nova", pylab="Observations")
+PrintBarPlots("Plastic Observations by Type in the U.S.", "plastic_obs_by_type", 11, 6, us_samdi_df_plastic, 
+    "itemname", "count", desc_palette, pfamily="Gill Sans Nova", pylab="Observations")
 
-PrintBarPlots("QUANTITY BY TYPE", "obs_by_quant", 11, 6, us_samdi_df, "description", "col", desc_palette, pfamily="Gill Sans Nova")
-PrintBarPlots("PLASTIC OBSERVATIONS BY QUANTITY", "plastic_obs_by_quant", 11, 6, us_samdi_df_plastic, "itemname", "col", desc_palette, pfamily="Gill Sans Nova")
+PrintBarPlots("Quantity by Type in the U.S.", "obs_by_quant", 11, 6, us_samdi_df, "description", 
+    "col", desc_palette, pfamily="Gill Sans Nova", pylab="Quantity")
+PrintBarPlots("Plastic Observations by Quantity in the U.S.", "plastic_obs_by_quant", 11, 6, us_samdi_df_plastic, 
+    "itemname", "col", desc_palette, pfamily="Gill Sans Nova", pylab="Quantity")
 
-PrintBarPlots("YEARLY OBSERVATIONS BY TYPE", "obs_by_type_yearly", 11, 6, us_samdi_df, "years", "count", desc_palette, pfamily="Gill Sans Nova", pscalex="years")
-PrintBarPlots("YEARLY QUANTITY BY TYPE", "obs_by_quant_yearly", 11, 6, us_samdi_df, "quantyears", "identity", desc_palette, pfamily="Gill Sans Nova", pscalex="years")
+PrintBarPlots("Yearly Observations by Type in the U.S.", "obs_by_type_yearly", 11, 6, us_samdi_df, 
+    "years", "count", desc_palette, pfamily="Gill Sans Nova", pylab="Observations", 
+    pscalex="years", plegend="Types", pposlegend="right")
+PrintBarPlots("Yearly Quantity by Type in the U.S.", "obs_by_quant_yearly", 11, 6, us_samdi_df, 
+    "quantyears", "identity", desc_palette, pfamily="Gill Sans Nova", pylab="Quantity", 
+    pscalex="years", plegend="Types", pposlegend="right")
 
-PrintBarPlots("YEARLY OBSERVATIONS BY TYPE", "obs_by_type_yearly_percent", 11, 6, us_samdi_df, "years", "fill", desc_palette, pfamily="Gill Sans Nova", pscalex="years", pscaley="percent")
-PrintBarPlots("PLASTIC YEARLY OBSERVATIONS BY TYPE", "plastic_obs_by_quant_yearly_percent", 11, 6, us_samdi_df_plastic, "percentyears", "fill", desc_palette, pfamily="Gill Sans Nova", pscalex="years", pscaley="percent", plegend="PLASTIC TYPES")
+PrintBarPlots("Yearly Observations by Type in the U.S.", "obs_by_type_yearly_percent", 11, 6, us_samdi_df, 
+    "years", "fill", desc_palette, pfamily="Gill Sans Nova", pscalex="years", pscaley="percent",
+    plegend="Types", pposlegend="right"))
+PrintBarPlots("Plastic Yearly Observations by Type in the U.S.", "plastic_obs_by_quant_yearly_percent", 11, 6,
+    us_samdi_df_plastic, "percentyears", "fill", desc_palette, pfamily="Gill Sans Nova", 
+    pscalex="years", pscaley="percent", plegend="Plastic Types", pposlegend="right")
     
 # Yearly series by type
 i <- 1
@@ -97,11 +137,11 @@ for (type in types) {
 # world map, full dataset
 world <- map_data("world")
 world <- world[world$region != "Antarctica",] # remove antarctica
-base_map <- geom_map(data=world, map=world, aes(x=long, y=lat, map_id=region), color=NA, fill="#ffffff", size=0.05, alpha=0.5)
+base_map <- geom_map(data=world, map=world, aes(x=long, y=lat, map_id=region), color=NA, fill="#3d85c6", size=0.05, alpha=0.5)
 base_map <- ggplot() + base_map
-world_map <- PlotDebrisMap(base_map, samdi_df, title="GLOBAL OBSERVATIONS BY TYPE AND QUANTITY")
+world_map <- PlotDebrisMap(base_map, samdi_df, title="World Observations by Type and Quantity")
 
-ExportPlot(world_map, filename="map_world_dist", width=11, height=6, bg="#3d85c6", format="png")
+ExportPlot(world_map, filename="map_world_dist", width=11, height=6, bg="#ffffff", format="png")
 
 # US east coast, west coast and great lakes
 states <- map_data("state")
@@ -113,9 +153,12 @@ ec_states = c("louisiana", "mississippi", "alabama", "tennessee", "indiana",
                 "south carolina", "georgia", "florida")
 gl_states = c("illinois", "indiana", "michigan", "minnesota", "new york", "ohio", "pennsylvania", "wisconsin")
 
-PrintCountiesOrStatesMap(states, gl_states, "great_lakes_distribution", 10, 8, bg="#3d85c6", title="GREAT LAKES OBSERVATIONS BY TYPE AND QUANTITY")
-PrintCountiesOrStatesMap(states, wc_states, "west_coast_distribution", 9, 8, bg="#3d85c6", title="WEST COAST OBSERVATIONS BY TYPE AND QUANTITY")
-PrintCountiesOrStatesMap(states, ec_states, "east_coast_distribution", 10, 8, bg="#3d85c6", title="EAST COAST OBSERVATIONS BY TYPE AND QUANTITY", legendpos="right")
+PrintCountiesOrStatesMap(states, gl_states, "great_lakes_distribution", 10, 8, 
+    title="Great Lakes Observations by Type and Quantity")
+PrintCountiesOrStatesMap(states, wc_states, "west_coast_distribution", 9, 8,
+    title="West Coast Observations by Type and Quantity")
+PrintCountiesOrStatesMap(states, ec_states, "east_coast_distribution", 10, 8,
+    title="East Coast Observations by Type and Quantity", legendpos="right")
 
 # Prepare counties with fips (needed for merges..)
 counties <- map_data("county")
@@ -175,10 +218,10 @@ ec_counties <- ec_counties %>% mutate(quantity = if_else(is.na(quantity), 0, qua
 ec_counties$grade <- cut(ec_counties$quantity, breaks= quant_beautiful_brakes, right = FALSE)
 
 PrintHeatMap(states, gl_states, gl_counties, "great_lakes_heatmap", pwidth=10, pheight=6, ppalette="YlOrRd", 
-    plabels=quant_map_labels, pfont="Gill Sans Nova", fillcolor="#7f7f7f", ptitle="GREAT LAKES COUNTIES BY QUANTITY")
+    plabels=quant_map_labels, pfont="Gill Sans Nova", fillcolor="#7f7f7f", ptitle="Great Lakes Counties by Quantity")
 
 PrintHeatMap(states, wc_states, wc_counties, "west_coast_heatmap", pwidth=10, pheight=6, ppalette="YlOrRd", 
-    plabels=quant_map_labels, pfont="Gill Sans Nova", fillcolor="#7f7f7f", ptitle="WEST COAST COUNTIES BY QUANTITY")
+    plabels=quant_map_labels, pfont="Gill Sans Nova", fillcolor="#7f7f7f", ptitle="West Coast Counties by Quantity")
 
 PrintHeatMap(states, ec_states, ec_counties, "east_coast_heatmap", pwidth=10, pheight=6, ppalette="YlOrRd", 
-    plabels=quant_map_labels, pfont="Gill Sans Nova", fillcolor="#7f7f7f", ptitle="EAST COAST COUNTIES BY QUANTITY")
+    plabels=quant_map_labels, pfont="Gill Sans Nova", fillcolor="#7f7f7f", ptitle="East Coast Counties by Quantity")
