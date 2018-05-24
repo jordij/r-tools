@@ -203,6 +203,7 @@ spdf <- SpatialPointsDataFrame(coords=subset(samdi_df, select=c("longitude", "la
 proj4string(spdf) <- proj4string(tl_counties)
 spdf$county_name <- over(spdf, tl_counties)$name
 spdf$county_fip <- over(spdf, tl_counties)$county_fip
+spdf$statefp <- over(spdf, tl_counties)$statefp
 by_county <- group_by(as.data.frame(spdf), county_fip)
 counts <- summarise(by_county, count = n(), sum(quantity))
 colnames(counts) <- c("county_fip", "count", "quantity")
@@ -237,9 +238,65 @@ ec_counties$grade <- cut(ec_counties$quantity, breaks= quant_beautiful_brakes, r
 
 PrintHeatMap(states, gl_states, gl_counties, "great_lakes_heatmap", pwidth=12, pheight=6, ppalette="YlOrRd", 
     plabels=quant_map_labels, pfont="Gill Sans Nova", pfillcolor="#7f7f7f", ptitle="Great Lakes Counties by Quantity")
-
 PrintHeatMap(states, wc_states, wc_counties, "west_coast_heatmap", pwidth=12, pheight=6, ppalette="YlOrRd", 
     plabels=quant_map_labels, pfont="Gill Sans Nova", pfillcolor="#7f7f7f", ptitle="West Coast Counties by Quantity")
-
 PrintHeatMap(states, ec_states, ec_counties, "east_coast_heatmap", pwidth=12, pheight=6, ppalette="YlOrRd", 
     plabels=quant_map_labels, pfont="Gill Sans Nova", pfillcolor="#7f7f7f", ptitle="East Coast Counties by Quantity")
+
+# Counties ordered by quantity wuthout dupes
+wc_top_counties <- wc_counties[!duplicated(wc_counties[, c("county_name", "quantity")]), c("county_name", "quantity")]
+ec_top_counties <- ec_counties[!duplicated(ec_counties[, c("county_name", "quantity")]), c("county_name", "quantity")]
+gl_top_counties <- gl_counties[!duplicated(gl_counties[, c("county_name", "quantity")]), c("county_name", "quantity")]
+# Top 10 by quantity
+head(wc_top_counties[order(-wc_top_counties$quantity),], 10)
+head(ec_top_counties[order(-ec_top_counties$quantity),], 10)
+head(gl_top_counties[order(-gl_top_counties$quantity),], 10)
+
+#################
+# Californication
+#################
+# set california aside
+california_df <- by_county[by_county$statefp == "06", ]
+# remove 2011, only 2 obs
+california_df <- (california_df[!(california_df$year == 2011),])
+# plastics aside
+california_df_plastic <- subset(california_df, description=="Plastic")
+# Reduce plastic levels
+levels(california_df_plastic$itemname)[levels(california_df_plastic$itemname) %in% c("Cigarette lighters/tobacco packaging", "Cigarette or tobacco packaging", "Cigarettes")] <- "Cigarettes"
+levels(california_df_plastic$itemname)[levels(california_df_plastic$itemname) %in% c("Aerosol cans", "Aluminum or tin cans")] <- "Cans"
+levels(california_df_plastic$itemname)[levels(california_df_plastic$itemname) %in%  c("Buoys and floats", "Crab/Lobster/Fish trap parts", "Fishing nets", "Fishing lures and lines", "Rope or Net Pieces (non-nylon)")] <- "Fishing Gear"
+levels(california_df_plastic$itemname)[levels(california_df_plastic$itemname) == "Plastic Bags"] <- "Bags"
+levels(california_df_plastic$itemname)[levels(california_df_plastic$itemname) == "Plastic or Foam Fragments"] <- "Fragments"
+levels(california_df_plastic$itemname)[levels(california_df_plastic$itemname) %in% c("Plastic Bottle", "Plastic Bottle or Container Caps", "Straws", "Plastic Food Wrappers", "Foam or Plastic Cups", "Plastic Utensils", "Six-pack rings")] <- "Food&Drink"
+levels(california_df_plastic$itemname)[levels(california_df_plastic$itemname) %in% c("Styrofoam packaging", "Balloons and/or string", "Personal care products", "Other Plastic Jugs or Containers", "Fireworks", "Toys (plastic)", "Non-food related plastic packaging", "Chemicals and chemical containers", "Rubber Gloves")] <- "Other"
+
+# California bar plots
+PrintBarPlots("Yearly Observations by Type in California", "cali_obs_by_type_yearly", 12, 6, california_df, 
+    "years", "count", desc_palette, pfamily="Gill Sans Nova", pylab="Observations", 
+    pscalex="years", plegend="Types", pposlegend="right", ptitlesize=30, ptextsize=24)
+PrintBarPlots("Yearly Quantity by Type in California", "cali_obs_by_quant_yearly", 12, 6, california_df, 
+    "quantyears", "identity", desc_palette, pfamily="Gill Sans Nova", pylab="Quantity", 
+    pscalex="years", plegend="Types", pposlegend="right", ptitlesize=30, ptextsize=24)
+PrintBarPlots("Yearly Observations by Type in California", "cali_obs_by_type_yearly_percent", 12, 6, california_df, 
+    "years", "fill", desc_palette, pfamily="Gill Sans Nova", pscalex="years", pscaley="percent",
+    plegend="Types", pposlegend="right", ptitlesize=30, ptextsize=24)
+PrintBarPlots("Plastic Yearly Observations by Type in California", "cali_plastic_obs_by_quant_yearly_percent", 12, 6,
+    california_df_plastic, "percentyears", "fill", desc_palette, pfamily="Gill Sans Nova", 
+    pscalex="years", pscaley="percent", plegend="Plastic Types", pposlegend="right", ptitlesize=30, ptextsize=24)
+
+# california only
+nrow(california_df)
+sum(california_df$quantity)
+summarize(group_by(california_df, year), 
+    count=n(),
+    mm= mean(quantity), 
+    tot= sum(quantity), 
+    max = max(quantity, na.rm = TRUE))
+# california plastic us only
+nrow(california_df_plastic)
+sum(california_df_plastic$quantity)
+summarize(group_by(california_df_plastic, year),
+    count=n(),
+    mm= mean(quantity), 
+    tot= sum(quantity), 
+    max = max(quantity, na.rm = TRUE))
