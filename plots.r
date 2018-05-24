@@ -172,13 +172,14 @@ PrintCountiesOrStatesMap <- function (us_states, states, name, width, height, bg
     ExportPlot(gg_map, filename=name, width=width, height=height, format="png", bg=bg)
 }
 
-PrintHeatMap <- function(states, sub_states, counties, pfilename, pwidth, pheight, ppalette, plabels, pfont="serif", fillcolor, 
-                            pcolor="#000000", pposlegend="right", pbg="#ffffff", ptitle="") {
+PrintHeatMap <- function(states, sub_states, counties, pfilename, pwidth, pheight, ppalette, plabels,
+                    pfont="serif", pfillcolor="#7f7f7f", ptextcolor="#000000",
+                    pcolor="#ffffff", pposlegend="right", pbg="#ffffff", ptitle="") {
     subset_counties <- subset(states, region %in% sub_states)
     gg <- ggplot(data=subset_counties) + 
-        geom_polygon(aes(x=long, y=lat, group=group), fill=fillcolor, size=0.05, alpha=0.7, color=pcolor) +
+        geom_polygon(aes(x=long, y=lat, group=group), fill="#7f7f7f", size=0.05, alpha=0.7, color=pcolor) +
         geom_polygon(data=counties, aes(long, lat, group=group, fill=grade), alpha=0.8, color=pcolor) + 
-        scale_fill_brewer(palette=ppalette, labels=plabels, name="", drop=FALSE) +
+        scale_fill_brewer(palette=ppalette, labels=plabels, name="", drop=FALSE, na.value=pfillcolor) +
         coord_fixed(1.4) +
         xlab("") +
         ylab("") +
@@ -186,7 +187,7 @@ PrintHeatMap <- function(states, sub_states, counties, pfilename, pwidth, pheigh
         theme(plot.title=element_text(hjust = 0.5),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
-            text=element_text(size=20,  family=pfont, colour=pcolor),
+            text=element_text(size=20,  family=pfont, colour=ptextcolor),
             legend.position=pposlegend,
             axis.line=element_blank(),
             axis.text=element_blank(),
