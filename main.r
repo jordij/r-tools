@@ -13,6 +13,16 @@ library(tidyr)
 library(usmap)
 library(tmap)
 
+#############
+## WARNING ##
+#############
+## I like using Gill Sans Nova typeface for plots and maps.
+## If you need to load your fonts in Windows, uncomment the line below.
+## If you don't have Gill Sans Nova locally just replace all occurences of `pfamily="serif"`
+## or with your typeface of choice.
+
+# loadfonts(device = "win")
+
 source(file="plots.r")
 
 #######################
@@ -20,7 +30,7 @@ source(file="plots.r")
 #######################
 samdi_df <- read.table(file="./data/samdi_latest_data_2011_2018.csv", header=TRUE, sep=";", quote='"', fill=TRUE)
 # get rid of rows with empty dates
-samdi_df <- samdi_df[!(samdi_df$date == ''),]
+samdi_df <- samdi_df[!(samdi_df$date == ''), ]
 # separate years and months (R originally reads date as factor)
 samdi_df$year <- year(samdi_df$date)
 samdi_df$month <- month(samdi_df$date)
@@ -43,7 +53,7 @@ levels(samdi_df$description)[levels(samdi_df$description) == "RUBBER"] <- "Rubbe
 # exclude rows from outside continental North America bounding box -136.4,16.8,-59.1,49.6
 bbox <- c(-136.4, -59.1,  16.8, 49.61)
 us_samdi_df <- samdi_df[(samdi_df$longitude >= bbox[1]  & samdi_df$longitude <= bbox[2] & samdi_df$latitude >= bbox[3] & samdi_df$latitude <= bbox[4] ),]
-us_samdi_df_plastic <- subset(us_samdi_df, description=="Plastic")
+us_samdi_df_plastic <- subset(us_samdi_df, description == "Plastic")
 # Reduce plastic levels
 levels(us_samdi_df_plastic$itemname)[levels(us_samdi_df_plastic$itemname) %in% c("Cigarette lighters/tobacco packaging", "Cigarette or tobacco packaging", "Cigarettes")] <- "Cigarettes"
 levels(us_samdi_df_plastic$itemname)[levels(us_samdi_df_plastic$itemname) %in% c("Aerosol cans", "Aluminum or tin cans")] <- "Cans"
@@ -157,7 +167,7 @@ world <- map_data("world")
 world <- world[world$region != "Antarctica",] # remove antarctica
 base_map <- geom_map(data=world, map=world, aes(x=long, y=lat, map_id=region), color=NA, fill="#3d85c6", size=0.05, alpha=0.5)
 base_map <- ggplot() + base_map
-world_map <- PlotDebrisMap(base_map, samdi_df, title="World Observations by Type and Quantity")
+world_map <- PlotDebrisMap(base_map, samdi_df, title="World Observations by Type and Quantity", pfamily="Gill Sans Nova")
 
 ExportPlot(world_map, filename="map_world_dist", width=11, height=6, bg="#ffffff", format="png")
 
@@ -172,11 +182,11 @@ ec_states = c("louisiana", "mississippi", "alabama", "tennessee", "indiana",
 gl_states = c("illinois", "indiana", "michigan", "minnesota", "new york", "ohio", "pennsylvania", "wisconsin")
 
 PrintCountiesOrStatesMap(states, gl_states, "great_lakes_distribution", 10, 8, 
-    title="Great Lakes Observations by Type and Quantity")
+    title="Great Lakes Observations by Type and Quantity", pfamily="Gill Sans Nova")
 PrintCountiesOrStatesMap(states, wc_states, "west_coast_distribution", 9, 8,
-    title="West Coast Observations by Type and Quantity")
+    title="West Coast Observations by Type and Quantity", pfamily="Gill Sans Nova")
 PrintCountiesOrStatesMap(states, ec_states, "east_coast_distribution", 10, 8,
-    title="East Coast Observations by Type and Quantity", legendpos="right")
+    title="East Coast Observations by Type and Quantity", legendpos="right", pfamily="Gill Sans Nova")
 
 # Prepare counties with fips (needed for merges..)
 counties <- map_data("county")
@@ -237,11 +247,11 @@ ec_counties <- ec_counties %>% mutate(quantity = if_else(is.na(quantity), 0, qua
 ec_counties$grade <- cut(ec_counties$quantity, breaks= quant_beautiful_brakes, right = FALSE)
 
 PrintHeatMap(states, gl_states, gl_counties, "great_lakes_heatmap", pwidth=12, pheight=6, ppalette="YlOrRd", 
-    plabels=quant_map_labels, pfont="Gill Sans Nova", pfillcolor="#7f7f7f", ptitle="Great Lakes Counties by Quantity")
+    plabels=quant_map_labels, pfamily="Gill Sans Nova", pfillcolor="#7f7f7f", ptitle="Great Lakes Counties by Quantity")
 PrintHeatMap(states, wc_states, wc_counties, "west_coast_heatmap", pwidth=12, pheight=6, ppalette="YlOrRd", 
-    plabels=quant_map_labels, pfont="Gill Sans Nova", pfillcolor="#7f7f7f", ptitle="West Coast Counties by Quantity")
+    plabels=quant_map_labels, pfamily="Gill Sans Nova", pfillcolor="#7f7f7f", ptitle="West Coast Counties by Quantity")
 PrintHeatMap(states, ec_states, ec_counties, "east_coast_heatmap", pwidth=12, pheight=6, ppalette="YlOrRd", 
-    plabels=quant_map_labels, pfont="Gill Sans Nova", pfillcolor="#7f7f7f", ptitle="East Coast Counties by Quantity")
+    plabels=quant_map_labels, pfamily="Gill Sans Nova", pfillcolor="#7f7f7f", ptitle="East Coast Counties by Quantity")
 
 # Counties ordered by quantity wuthout dupes
 wc_top_counties <- wc_counties[!duplicated(wc_counties[, c("county_name", "quantity")]), c("county_name", "quantity")]
@@ -255,6 +265,7 @@ head(gl_top_counties[order(-gl_top_counties$quantity),], 10)
 #################
 # Californication
 #################
+
 # set california aside
 california_df <- by_county[by_county$statefp == "06", ]
 # remove 2011, only 2 obs
@@ -270,7 +281,9 @@ levels(california_df_plastic$itemname)[levels(california_df_plastic$itemname) ==
 levels(california_df_plastic$itemname)[levels(california_df_plastic$itemname) %in% c("Plastic Bottle", "Plastic Bottle or Container Caps", "Straws", "Plastic Food Wrappers", "Foam or Plastic Cups", "Plastic Utensils", "Six-pack rings")] <- "Food&Drink"
 levels(california_df_plastic$itemname)[levels(california_df_plastic$itemname) %in% c("Styrofoam packaging", "Balloons and/or string", "Personal care products", "Other Plastic Jugs or Containers", "Fireworks", "Toys (plastic)", "Non-food related plastic packaging", "Chemicals and chemical containers", "Rubber Gloves")] <- "Other"
 
+######################
 # California bar plots
+######################
 PrintBarPlots("Yearly Observations by Type in California", "cali_obs_by_type_yearly", 12, 6, california_df, 
     "years", "count", desc_palette, pfamily="Gill Sans Nova", pylab="Observations", 
     pscalex="years", plegend="Types", pposlegend="right", ptitlesize=30, ptextsize=24)
@@ -284,7 +297,9 @@ PrintBarPlots("Plastic Yearly Observations by Type in California", "cali_plastic
     california_df_plastic, "percentyears", "fill", desc_palette, pfamily="Gill Sans Nova", 
     pscalex="years", pscaley="percent", plegend="Plastic Types", pposlegend="right", ptitlesize=30, ptextsize=24)
 
-# california only
+########################
+# California basic stats
+########################
 nrow(california_df)
 sum(california_df$quantity)
 summarize(group_by(california_df, year), 
@@ -292,7 +307,7 @@ summarize(group_by(california_df, year),
     mm= mean(quantity), 
     tot= sum(quantity), 
     max = max(quantity, na.rm = TRUE))
-# california plastic us only
+# california plastic
 nrow(california_df_plastic)
 sum(california_df_plastic$quantity)
 summarize(group_by(california_df_plastic, year),

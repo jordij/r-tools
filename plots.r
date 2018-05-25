@@ -121,7 +121,7 @@ PrintBarPlots <- function(ptitle, pname, pwidth, pheight, pdata, pfill, ptype, p
             axis.text=element_text(colour=pcolor, size=ptextsize, family=pfamily),
             panel.grid.major=element_blank(),
             panel.grid.minor=element_blank(),
-            text=element_text(size=ptextsize, family="Gill Sans Nova", colour=pcolor),
+            text=element_text(size=ptextsize, family=pfamily, colour=pcolor),
             axis.line=element_blank(),
             axis.ticks=element_blank(),
             rect=element_blank())
@@ -137,7 +137,7 @@ PrintBarPlots <- function(ptitle, pname, pwidth, pheight, pdata, pfill, ptype, p
 # Print Maps
 #############
 
-PlotDebrisMap <- function(basemap, dataframe, title="", legend_pos="right", pcolor="#000000"){
+PlotDebrisMap <- function(basemap, dataframe, title="", legend_pos="right", pfamily="serif", pcolor="#000000"){
     gg <- basemap +
         geom_point(data=dataframe, aes(x=longitude, y=latitude, color=description, size=size), alpha=0.6) +
         scale_color_manual(values=desc_palette) + 
@@ -145,7 +145,7 @@ PlotDebrisMap <- function(basemap, dataframe, title="", legend_pos="right", pcol
         theme(plot.title=element_text(hjust = 0.5),
             panel.grid.major=element_blank(),
             panel.grid.minor=element_blank(),
-            text=element_text(size=22,  family="Gill Sans Nova", colour=pcolor),
+            text=element_text(size=22,  family=pfamily, colour=pcolor),
             legend.position=legend_pos,
             legend.spacing = unit(1,"cm"),
             axis.line=element_blank(),
@@ -162,18 +162,19 @@ PlotDebrisMap <- function(basemap, dataframe, title="", legend_pos="right", pcol
     return(gg)
 }
 
-PrintCountiesOrStatesMap <- function (us_states, states, name, width, height, bg="#ffffff", title="", legendpos="bottom") {
+PrintCountiesOrStatesMap <- function (us_states, states, name, width, height, bg="#ffffff", title="",
+                                legendpos="bottom", pfamily="serif") {
     subset_counties <- subset(us_states, region %in% states)
     gg <- ggplot(data=subset_counties) + 
         geom_polygon(aes(x = long, y = lat, group = group), fill="#7f7f7f", size=0.05, alpha=0.4, color="white") + 
         coord_fixed(1.3)
     subset_samdi_df <- samdi_df[(samdi_df$longitude >= min(gg$data$long) & samdi_df$longitude <= max(gg$data$long) & samdi_df$latitude >= min(gg$data$lat) & samdi_df$latitude <= max(gg$data$lat)),]
-    gg_map <- PlotDebrisMap(gg, subset_samdi_df, title=title, legend_pos=legendpos)
+    gg_map <- PlotDebrisMap(gg, subset_samdi_df, title=title, legend_pos=legendpos, pfamily=pfamily)
     ExportPlot(gg_map, filename=name, width=width, height=height, format="png", bg=bg)
 }
 
 PrintHeatMap <- function(states, sub_states, counties, pfilename, pwidth, pheight, ppalette, plabels,
-                    pfont="serif", pfillcolor="#7f7f7f", ptextcolor="#000000",
+                    pfamily="serif", pfillcolor="#7f7f7f", ptextcolor="#000000",
                     pcolor="#ffffff", pposlegend="right", pbg="#ffffff", ptitle="") {
     subset_counties <- subset(states, region %in% sub_states)
     gg <- ggplot(data=subset_counties) + 
@@ -187,7 +188,7 @@ PrintHeatMap <- function(states, sub_states, counties, pfilename, pwidth, pheigh
         theme(plot.title=element_text(hjust = 0.5),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
-            text=element_text(size=20,  family=pfont, colour=ptextcolor),
+            text=element_text(size=20,  family=pfamily, colour=ptextcolor),
             legend.position=pposlegend,
             axis.line=element_blank(),
             axis.text=element_blank(),
