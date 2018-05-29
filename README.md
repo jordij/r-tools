@@ -23,17 +23,17 @@ The original dataset is in `./data/samdi_latest_data_2011_2018.csv` feel free to
 
 Packages needed:
 
-akima
-dplyr
-extrafont
-ggmap
-ggplot2
-lubridate
-maps
-RColorBrewer
-rgdal
-scales
-sp
-tidyr
-tmap
-usmap
+* akima
+* dplyr
+* extrafont
+* ggmap
+* ggplot2
+* lubridate
+* maps
+* RColorBrewer
+* rgdal
+* scales
+* sp
+* tidyr
+* tmap
+* usmap
